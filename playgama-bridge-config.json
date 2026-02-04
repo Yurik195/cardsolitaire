@@ -1,0 +1,13 @@
+{
+  "yandex": { "appId": "" },
+  "vk": { 
+    "appId": "",
+    "communityId": "217329390"
+  },
+  "ok": { "appId": "" },
+  "crazy_games": { "appId": "" },
+  "absolute_games": { "appId": "" },
+  "game_distribution": { "appId": "" },
+  "playdeck": { "appId": "" },
+  "telegram": { "appId": "" }
+}
