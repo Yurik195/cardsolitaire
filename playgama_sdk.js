@@ -76,15 +76,23 @@ export async function initPlaygamaSDK() {
     console.log('Language:', bridge.platform.language);
     
     // Инициализируем VK Bridge если платформа VK
+    console.log('Проверка VK Bridge:', {
+      platformId: bridge.platform.id,
+      isVK: bridge.platform.id === 'vk',
+      vkBridgeExists: typeof window.vkBridge !== 'undefined'
+    });
+    
     if (bridge.platform.id === 'vk' && typeof window.vkBridge !== 'undefined') {
       vkBridge = window.vkBridge;
       try {
         await vkBridge.send('VKWebAppInit');
-        console.log('VK Bridge инициализирован для облачных сохранений');
+        console.log('✅ VK Bridge инициализирован для облачных сохранений');
       } catch (error) {
-        console.warn('Ошибка инициализации VK Bridge:', error);
+        console.warn('❌ Ошибка инициализации VK Bridge:', error);
         vkBridge = null;
       }
+    } else {
+      console.log('VK Bridge не используется (платформа не VK или bridge не найден)');
     }
     
     return bridge;
@@ -261,16 +269,24 @@ export function getShopRewardedCooldown() {
  * Сохранить данные игрока в облако
  */
 export async function savePlayerData(data) {
+  console.log('savePlayerData вызван с данными:', data);
+  console.log('VK Bridge статус:', {
+    vkBridgeExists: !!vkBridge,
+    bridgeExists: !!bridge,
+    platformId: bridge?.platform?.id
+  });
+  
   // Если VK платформа - используем VK Bridge для облачных сохранений
   if (vkBridge && bridge && bridge.platform.id === 'vk') {
     try {
-      console.log('Сохранение данных через VK Bridge...');
+      console.log('💾 Сохранение данных через VK Bridge...');
       
       // VK Bridge требует сохранение по ключам
       const savePromises = [];
       
       // Сохраняем каждое поле отдельно
       if (data.coins !== undefined) {
+        console.log('Сохранение coins:', data.coins);
         savePromises.push(
           vkBridge.send('VKWebAppStorageSet', {
             key: 'gameCoins',
@@ -280,6 +296,7 @@ export async function savePlayerData(data) {
       }
       
       if (data.hints !== undefined) {
+        console.log('Сохранение hints:', data.hints);
         savePromises.push(
           vkBridge.send('VKWebAppStorageSet', {
             key: 'gameHints',
@@ -289,6 +306,7 @@ export async function savePlayerData(data) {
       }
       
       if (data.undos !== undefined) {
+        console.log('Сохранение undos:', data.undos);
         savePromises.push(
           vkBridge.send('VKWebAppStorageSet', {
             key: 'gameUndos',
@@ -298,6 +316,7 @@ export async function savePlayerData(data) {
       }
       
       if (data.maxLevel !== undefined) {
+        console.log('Сохранение maxLevel:', data.maxLevel);
         savePromises.push(
           vkBridge.send('VKWebAppStorageSet', {
             key: 'gameMaxLevel',
@@ -307,6 +326,7 @@ export async function savePlayerData(data) {
       }
       
       if (data.noAds !== undefined) {
+        console.log('Сохранение noAds:', data.noAds);
         savePromises.push(
           vkBridge.send('VKWebAppStorageSet', {
             key: 'gameNoAds',
@@ -316,10 +336,10 @@ export async function savePlayerData(data) {
       }
       
       await Promise.all(savePromises);
-      console.log('Данные сохранены в VK облако');
+      console.log('✅ Данные сохранены в VK облако');
       return true;
     } catch (error) {
-      console.warn('Ошибка сохранения в VK облако:', error);
+      console.warn('❌ Ошибка сохранения в VK облако:', error);
       // Fallback на Playgama storage
     }
   }
@@ -351,10 +371,17 @@ export async function savePlayerData(data) {
  * Загрузить данные игрока из облака
  */
 export async function loadPlayerData() {
+  console.log('loadPlayerData вызван');
+  console.log('VK Bridge статус:', {
+    vkBridgeExists: !!vkBridge,
+    bridgeExists: !!bridge,
+    platformId: bridge?.platform?.id
+  });
+  
   // Если VK платформа - используем VK Bridge для облачных сохранений
   if (vkBridge && bridge && bridge.platform.id === 'vk') {
     try {
-      console.log('Загрузка данных через VK Bridge...');
+      console.log('📥 Загрузка данных через VK Bridge...');
       
       const result = await vkBridge.send('VKWebAppStorageGet', {
         keys: ['gameCoins', 'gameHints', 'gameUndos', 'gameMaxLevel', 'gameNoAds']
@@ -385,11 +412,14 @@ export async function loadPlayerData() {
       
       // Синхронизация: если в облаке пусто, но есть локальные данные - загружаем в облако
       if (Object.keys(data).length === 0) {
+        console.log('⚠️ Облако пустое, проверяем локальные данные...');
         const localCoins = localStorage.getItem('gameCoins');
         const localMaxLevel = localStorage.getItem('maxLevel');
         
+        console.log('Локальные данные:', { localCoins, localMaxLevel });
+        
         if (localCoins || localMaxLevel) {
-          console.log('Синхронизация локальных данных с облаком...');
+          console.log('📤 Синхронизация локальных данных с облаком...');
           const syncData = {};
           
           if (localCoins) {
@@ -400,8 +430,11 @@ export async function loadPlayerData() {
           }
           
           await savePlayerData(syncData);
+          console.log('✅ Локальные данные загружены в облако');
           return syncData;
         }
+      } else {
+        console.log('✅ Данные успешно загружены из облака');
       }
       
       return data;

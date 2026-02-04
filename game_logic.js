@@ -373,9 +373,14 @@ export const Game = {
 
   // Асинхронное сохранение монет в облако (не блокирует игру)
   _saveCoinsToCloud(coins) {
-    import('./playgama_sdk.js').then(({ savePlayerData }) => {
-      savePlayerData({ coins }).catch(err => {
-        console.warn('Ошибка сохранения монет в облако:', err);
+    import('./playgama_sdk.js').then(({ savePlayerData, loadPlayerData }) => {
+      loadPlayerData().then(currentData => {
+        savePlayerData({
+          ...currentData,
+          coins
+        }).catch(err => {
+          console.warn('Ошибка сохранения монет в облако:', err);
+        });
       });
     });
   },
