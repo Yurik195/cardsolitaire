@@ -5,6 +5,7 @@
 
 // Глобальная переменная bridge будет доступна после загрузки playgama-bridge.js
 let bridge = null;
+let vkBridge = null; // VK Bridge для облачных сохранений
 let isInitialized = false;
 let languageApplied = false;
 let gameReadySent = false;
@@ -73,6 +74,18 @@ export async function initPlaygamaSDK() {
     console.log('Playgama Bridge инициализирован');
     console.log('Platform:', bridge.platform.id);
     console.log('Language:', bridge.platform.language);
+    
+    // Инициализируем VK Bridge если платформа VK
+    if (bridge.platform.id === 'vk' && typeof window.vkBridge !== 'undefined') {
+      vkBridge = window.vkBridge;
+      try {
+        await vkBridge.send('VKWebAppInit');
+        console.log('VK Bridge инициализирован для облачных сохранений');
+      } catch (error) {
+        console.warn('Ошибка инициализации VK Bridge:', error);
+        vkBridge = null;
+      }
+    }
     
     return bridge;
   } catch (error) {
@@ -248,6 +261,70 @@ export function getShopRewardedCooldown() {
  * Сохранить данные игрока в облако
  */
 export async function savePlayerData(data) {
+  // Если VK платформа - используем VK Bridge для облачных сохранений
+  if (vkBridge && bridge && bridge.platform.id === 'vk') {
+    try {
+      console.log('Сохранение данных через VK Bridge...');
+      
+      // VK Bridge требует сохранение по ключам
+      const savePromises = [];
+      
+      // Сохраняем каждое поле отдельно
+      if (data.coins !== undefined) {
+        savePromises.push(
+          vkBridge.send('VKWebAppStorageSet', {
+            key: 'gameCoins',
+            value: String(data.coins)
+          })
+        );
+      }
+      
+      if (data.hints !== undefined) {
+        savePromises.push(
+          vkBridge.send('VKWebAppStorageSet', {
+            key: 'gameHints',
+            value: String(data.hints)
+          })
+        );
+      }
+      
+      if (data.undos !== undefined) {
+        savePromises.push(
+          vkBridge.send('VKWebAppStorageSet', {
+            key: 'gameUndos',
+            value: String(data.undos)
+          })
+        );
+      }
+      
+      if (data.maxLevel !== undefined) {
+        savePromises.push(
+          vkBridge.send('VKWebAppStorageSet', {
+            key: 'gameMaxLevel',
+            value: String(data.maxLevel)
+          })
+        );
+      }
+      
+      if (data.noAds !== undefined) {
+        savePromises.push(
+          vkBridge.send('VKWebAppStorageSet', {
+            key: 'gameNoAds',
+            value: data.noAds ? '1' : '0'
+          })
+        );
+      }
+      
+      await Promise.all(savePromises);
+      console.log('Данные сохранены в VK облако');
+      return true;
+    } catch (error) {
+      console.warn('Ошибка сохранения в VK облако:', error);
+      // Fallback на Playgama storage
+    }
+  }
+  
+  // Используем Playgama storage для других платформ
   if (!bridge) {
     console.log('savePlayerData (dev mode):', data);
     // Fallback на localStorage
@@ -262,10 +339,10 @@ export async function savePlayerData(data) {
   
   try {
     await bridge.storage.set(data);
-    console.log('Данные сохранены в облако');
+    console.log('Данные сохранены в облако Playgama');
     return true;
   } catch (error) {
-    console.warn('Ошибка сохранения в облако:', error);
+    console.warn('Ошибка сохранения в облако Playgama:', error);
     return false;
   }
 }
@@ -274,6 +351,67 @@ export async function savePlayerData(data) {
  * Загрузить данные игрока из облака
  */
 export async function loadPlayerData() {
+  // Если VK платформа - используем VK Bridge для облачных сохранений
+  if (vkBridge && bridge && bridge.platform.id === 'vk') {
+    try {
+      console.log('Загрузка данных через VK Bridge...');
+      
+      const result = await vkBridge.send('VKWebAppStorageGet', {
+        keys: ['gameCoins', 'gameHints', 'gameUndos', 'gameMaxLevel', 'gameNoAds']
+      });
+      
+      console.log('VK Bridge storage result:', result);
+      
+      // Парсим данные из VK формата
+      const data = {};
+      
+      if (result.keys) {
+        result.keys.forEach(item => {
+          if (item.key === 'gameCoins' && item.value) {
+            data.coins = parseInt(item.value, 10);
+          } else if (item.key === 'gameHints' && item.value) {
+            data.hints = parseInt(item.value, 10);
+          } else if (item.key === 'gameUndos' && item.value) {
+            data.undos = parseInt(item.value, 10);
+          } else if (item.key === 'gameMaxLevel' && item.value) {
+            data.maxLevel = parseInt(item.value, 10);
+          } else if (item.key === 'gameNoAds' && item.value) {
+            data.noAds = item.value === '1';
+          }
+        });
+      }
+      
+      console.log('Данные загружены из VK облака:', data);
+      
+      // Синхронизация: если в облаке пусто, но есть локальные данные - загружаем в облако
+      if (Object.keys(data).length === 0) {
+        const localCoins = localStorage.getItem('gameCoins');
+        const localMaxLevel = localStorage.getItem('maxLevel');
+        
+        if (localCoins || localMaxLevel) {
+          console.log('Синхронизация локальных данных с облаком...');
+          const syncData = {};
+          
+          if (localCoins) {
+            syncData.coins = parseInt(localCoins, 10);
+          }
+          if (localMaxLevel) {
+            syncData.maxLevel = parseInt(localMaxLevel, 10);
+          }
+          
+          await savePlayerData(syncData);
+          return syncData;
+        }
+      }
+      
+      return data;
+    } catch (error) {
+      console.warn('Ошибка загрузки из VK облака:', error);
+      // Fallback на Playgama storage
+    }
+  }
+  
+  // Используем Playgama storage для других платформ
   if (!bridge) {
     console.log('loadPlayerData (dev mode)');
     // Fallback на localStorage
@@ -288,10 +426,10 @@ export async function loadPlayerData() {
   
   try {
     const data = await bridge.storage.get();
-    console.log('Данные загружены из облака:', data);
+    console.log('Данные загружены из облака Playgama:', data);
     return data || {};
   } catch (error) {
-    console.warn('Ошибка загрузки из облака:', error);
+    console.warn('Ошибка загрузки из облака Playgama:', error);
     return {};
   }
 }
