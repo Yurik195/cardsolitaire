@@ -537,6 +537,26 @@ export function isVKPlatform() {
 }
 
 /**
+ * Показать sticky баннер (только для VK)
+ */
+export async function showStickyBanner() {
+  if (!bridge || !isVKPlatform()) {
+    console.log('showStickyBanner: not available on this platform');
+    return false;
+  }
+  
+  try {
+    console.log('Показываем sticky баннер через Playgama SDK...');
+    await bridge.advertisement.showSticky();
+    console.log('Sticky баннер показан');
+    return true;
+  } catch (error) {
+    console.warn('Ошибка показа sticky баннера:', error);
+    return false;
+  }
+}
+
+/**
  * Открыть группу VK
  */
 export function openVKGroup() {

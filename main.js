@@ -3,7 +3,7 @@ import { updateScale } from './scale.js';
 import './input.js';
 import { initAudio } from './audio.js';
 import { Game } from './game_logic.js';
-import { initPlaygamaSDK, applyLanguageOnce, sendGameReadyOnce, loadPlayerData, setAdsDisabled } from './playgama_sdk.js';
+import { initPlaygamaSDK, applyLanguageOnce, sendGameReadyOnce, loadPlayerData, setAdsDisabled, isVKPlatform, showStickyBanner } from './playgama_sdk.js';
 
 // Глобальная защита от ошибок SDK
 window.addEventListener('error', (event) => {
@@ -95,5 +95,13 @@ window.addEventListener('load', async () => {
   console.log('Sending game ready signal...');
   sendGameReadyOnce();
   console.log('=== GAME LOADING COMPLETE ===');
+  
+  // Если платформа VK - добавляем класс к body и показываем баннер
+  if (isVKPlatform()) {
+    console.log('VK platform detected, adding class and showing banner...');
+    document.body.classList.add('vk-platform');
+    // Показываем sticky баннер внизу экрана
+    await showStickyBanner();
+  }
 });
 
