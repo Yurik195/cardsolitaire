@@ -540,6 +540,8 @@ export function isVKPlatform() {
  * Показать sticky баннер (только для VK)
  */
 export async function showStickyBanner() {
+  console.log('🎯 showStickyBanner вызван (новая версия с VK Bridge)');
+  
   if (!bridge) {
     console.log('showStickyBanner: bridge not initialized');
     return false;
@@ -552,6 +554,7 @@ export async function showStickyBanner() {
   
   try {
     console.log('🎯 Попытка показать sticky баннер на VK...');
+    console.log('VK Bridge доступен:', !!vkBridge);
     
     // На VK платформе используем VK Bridge напрямую для показа баннера
     if (vkBridge) {
@@ -573,6 +576,8 @@ export async function showStickyBanner() {
           console.log('ℹ️ Баннеры не настроены для этого приложения в VK');
         }
       }
+    } else {
+      console.warn('⚠️ VK Bridge не доступен');
     }
     
     // Проверяем Playgama Bridge (на всякий случай)
