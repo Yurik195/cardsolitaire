@@ -617,15 +617,10 @@ html, body {
   justify-content: center;
   gap: 15px;
   position: fixed;
-  bottom: 110px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-}
-
-/* На VK платформе поднимаем кнопки выше для баннера */
-body.vk-platform #bottom-bar {
-  bottom: 110px;
 }
 
 #bottom-bar button {
@@ -2354,12 +2349,12 @@ body.mobile-portrait .btn-close-settings {
 }
 
 .vk-share-btn {
-  bottom: 110px;
+  bottom: 20px;
   left: 20px;
 }
 
 .vk-group-btn {
-  bottom: 110px;
+  bottom: 20px;
   right: 20px;
 }
 

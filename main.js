@@ -96,11 +96,9 @@ window.addEventListener('load', async () => {
   sendGameReadyOnce();
   console.log('=== GAME LOADING COMPLETE ===');
   
-  // Если платформа VK - добавляем класс к body и показываем баннер
+  // Если платформа VK - показываем баннер
   if (isVKPlatform()) {
-    console.log('VK platform detected, adding class and showing banner...');
-    document.body.classList.add('vk-platform');
-    // Показываем sticky баннер внизу экрана
+    console.log('VK platform detected, showing banner...');
     await showStickyBanner();
   }
 });
