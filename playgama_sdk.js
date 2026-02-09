@@ -540,18 +540,49 @@ export function isVKPlatform() {
  * Показать sticky баннер (только для VK)
  */
 export async function showStickyBanner() {
-  if (!bridge || !isVKPlatform()) {
-    console.log('showStickyBanner: not available on this platform');
+  if (!bridge) {
+    console.log('showStickyBanner: bridge not initialized');
+    return false;
+  }
+  
+  if (!isVKPlatform()) {
+    console.log('showStickyBanner: not VK platform');
     return false;
   }
   
   try {
     console.log('Показываем sticky баннер через Playgama SDK...');
-    await bridge.advertisement.showSticky();
-    console.log('Sticky баннер показан');
-    return true;
+    console.log('Platform ID:', bridge.platform.id);
+    console.log('bridge.advertisement:', bridge.advertisement);
+    
+    // Проверяем, есть ли метод showSticky
+    if (!bridge.advertisement) {
+      console.warn('bridge.advertisement не существует');
+      return false;
+    }
+    
+    // Проверяем доступные методы
+    const methods = Object.keys(bridge.advertisement);
+    console.log('Доступные методы advertisement:', methods);
+    
+    if (typeof bridge.advertisement.showSticky === 'function') {
+      console.log('Вызываем showSticky()...');
+      const result = await bridge.advertisement.showSticky();
+      console.log('showSticky() результат:', result);
+      return true;
+    } else if (typeof bridge.advertisement.showBanner === 'function') {
+      console.log('Вызываем showBanner()...');
+      const result = await bridge.advertisement.showBanner();
+      console.log('showBanner() результат:', result);
+      return true;
+    } else {
+      console.warn('Методы showSticky/showBanner не найдены');
+      console.warn('Возможно, баннеры не поддерживаются на этой платформе');
+      return false;
+    }
   } catch (error) {
     console.warn('Ошибка показа sticky баннера:', error);
+    console.warn('Error stack:', error.stack);
     return false;
   }
 }
